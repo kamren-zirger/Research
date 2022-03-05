@@ -46,7 +46,7 @@ class node():
       # In this case I'm assuming we want r without (neighbors and q) rather than
       # r without (neighbors without q)
       if (r not in self.neighbors) and r != sending_node:
-        # Is this group_TTL? Way to do this without index/okay to include index?
+        # Way to do this without index/okay to include index?
         if self.group_TTL[r.index_in_group] <= m:
           self.group_TTL[r.index_in_group] = m
           if self.group_suspect[r.index_in_group] == True:
