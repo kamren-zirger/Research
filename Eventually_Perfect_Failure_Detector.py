@@ -3,13 +3,11 @@
 # 2022
 
 class node():
-  def __init__(self, n, neighbors, group_no, is_leader = False):
+  def __init__(self, n, is_leader = False):
     self.T = 1 # Heartbeat time
     self.n = n
-    self.neighbors = neighbors
-    for neighbor in self.neighbors:
-      neighbor.neighbors.append(self)
-    self.group_no = group_no
+    self.neighbors = []
+    self.group_no = None
     self.is_leader = is_leader
     self.index_in_group = 0
     self.clock = 1
@@ -27,7 +25,7 @@ class node():
     for node in group:
       self.group_lastHB.append(0)
       # suspect default to true for testing?
-      self.group_suspect.append(False)
+      self.group_suspect.append(True)
       self.group_timeout.append(self.T)
       self.group_TTL.append(1)
   
@@ -43,8 +41,6 @@ class node():
 
   def groupRecieve(self, gr_bag, sending_node):
     for r, m in gr_bag:
-      # In this case I'm assuming we want r without (neighbors and q) rather than
-      # r without (neighbors without q)
       if (r not in self.neighbors) and r != sending_node:
         # Way to do this without index/okay to include index?
         if self.group_TTL[r.index_in_group] <= m:
@@ -56,6 +52,16 @@ class node():
               self.group_timeout[r.index_in_group] = 2 * self.group_timeout[r.index_in_group]
           self.group_lastHB[r.index_in_group] = self.clock
 
+def buildNetwork(size: int, connections: list):
+  nodes = []
+  for i in range(size):
+    nodes.append(node(size))
+  for index in range(len(connections)):
+    for neighbor in connections[index]:
+      if nodes[neighbor] not in nodes[index].neighbors:
+        nodes[index].neighbors.append(nodes[neighbor])
+  return nodes
+
 def checkConverged(groups):
   for group in groups:
     for node in group:
@@ -64,32 +70,35 @@ def checkConverged(groups):
   return True
 
 def buildExample1():
-  p0 = node(20, [], 0)
-  p1 = node(20, [], 1)
-  p2 = node(20, [p1], 0, True)
-  p3 = node(20, [p2], 0)
-  p4 = node(20, [p3], 0)
-  p5 = node(20, [p0, p1], 0)
-  p6 = node(20, [p1], 0)
-  p7 = node(20, [p6], 0)
-  p8 = node(20, [p2, p3, p4], 0)
-  p9 = node(20, [p3, p4, p8], 0)
-  p10 = node(20, [], 0)
-  p11 = node(20, [p5, p6], 0)
-  p12 = node(20, [], 0)
-  p13 = node(20, [p7, p8, p10], 0)
-  p14 = node(20, [p13], 0)
-  p15 = node(20, [p10], 0)
-  p16 = node(20, [p15], 0)
-  p17 = node(20, [p12], 0)
-  p18 = node(20, [p13, p17], 0)
-  p19 = node(20, [p4, p18], 0)
+  connections = [
+    [5],
+    [5, 6],
+    [1, 3, 8],
+    [2, 4, 8, 9],
+    [3, 8, 9, 19],
+    [0, 1, 11],
+    [1, 7, 11, 12],
+    [6, 13],
+    [2, 3, 4, 9, 13],
+    [3, 4, 8],
+    [13, 15],
+    [5, 6],
+    [6, 16, 17],
+    [7, 8, 10, 14, 18],
+    [13],
+    [10, 16],
+    [12, 15],
+    [12, 18],
+    [13, 17, 19],
+    [18, 4]
+  ]
+  network = buildNetwork(20, connections)
 
   groups = [[
-    p0, p5, p6, p7, p11,
-    p1, p2, p3, p4, p9,
-    p8, p13, p14, p18, p19,
-    p10, p12, p15, p16, p17
+    network[0], network[5], network[6], network[7], network[11],
+    network[1], network[2], network[3], network[4], network[9],
+    network[8], network[13], network[14], network[18], network[19],
+    network[10], network[12], network[15], network[16], network[17]
     ]]
 
   for group in groups:
@@ -98,48 +107,16 @@ def buildExample1():
       
   return groups
 
-def buildExample2():
-  p0 = node(20, [], 0)
-  p1 = node(20, [], 1)
-  p2 = node(20, [p1], 1, True)
-  p3 = node(20, [p2], 1)
-  p4 = node(20, [p3], 1)
-  p5 = node(20, [p0, p1], 0, True)
-  p6 = node(20, [p1], 0)
-  p7 = node(20, [p6], 0)
-  p8 = node(20, [p2, p3, p4], 2)
-  p9 = node(20, [p3, p4, p8], 1)
-  p10 = node(20, [], 3)
-  p11 = node(20, [p5, p6], 0)
-  p12 = node(20, [], 3)
-  p13 = node(20, [p7, p8, p10], 2)
-  p14 = node(20, [p13], 2, True)
-  p15 = node(20, [p10], 3)
-  p16 = node(20, [p15], 3, True)
-  p17 = node(20, [p12], 3)
-  p18 = node(20, [p13, p17], 2)
-  p19 = node(20, [p4, p18], 2)
-
-  groups = [
-    [p0, p5, p6, p7, p11],
-    [p1, p2, p3, p4, p9],
-    [p8, p13, p14, p18, p19],
-    [p10, p12, p15, p16, p17]
-    ]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-
-  return groups
-
 def main():
   groups = buildExample1()
-  while True:
+  iter = 0
+  while not checkConverged(groups):
+    print(iter)
+    iter += 1
     for group in groups:
       for node in group:
         node.groupSend()
+  print("Converged after: " + str(iter) + " iterations")
     
-
 if __name__ == "__main__":
   main()
