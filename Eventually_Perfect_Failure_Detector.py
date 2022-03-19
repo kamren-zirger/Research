@@ -25,7 +25,7 @@ class node():
     for node in group:
       self.group_lastHB.append(0)
       # suspect default to true for testing?
-      self.group_suspect.append(True)
+      self.group_suspect.append(False)
       self.group_timeout.append(self.T)
       self.group_TTL.append(1)
   
@@ -41,7 +41,8 @@ class node():
 
   def groupRecieve(self, gr_bag, sending_node):
     for r, m in gr_bag:
-      if (r not in self.neighbors) and r != sending_node:
+      # Need to allow neighbors and sending node?
+      if True:
         # Way to do this without index/okay to include index?
         if self.group_TTL[r.index_in_group] <= m:
           self.group_TTL[r.index_in_group] = m
@@ -104,6 +105,8 @@ def buildExample1():
   for group in groups:
     for node_i in range(len(group)):
       group[node_i].updateGroup(group, node_i)
+
+  groups[0][0].group_suspect[0] = True
       
   return groups
 
@@ -111,7 +114,6 @@ def main():
   groups = buildExample1()
   iter = 0
   while not checkConverged(groups):
-    print(iter)
     iter += 1
     for group in groups:
       for node in group:
