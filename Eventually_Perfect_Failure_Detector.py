@@ -220,6 +220,14 @@ def buildNetwork(size: int, connections: list, groups: list, leaders: list):
     "leaders": node_leaders
   }
 
+def runHeartbeat(network):
+  for node in network["nodes"]:
+    node.groupSend()
+  for leader in network["leaders"]:
+    leader.leaderSend()
+  for node in network["nodes"]:
+    node.sendOverlays()
+
 def checkConverged(network):
   for node in network["nodes"]:
     if True in node.suspect:
@@ -271,16 +279,10 @@ def main():
   print("In-Paper Network Example, old algorithm, one error")
 
   network = buildExample1()
-  leaders = network["leaders"]
   iter = 0
   while not checkConverged(network):
     iter += 1
-    for node in network["nodes"]:
-      node.groupSend()
-    for leader in leaders:
-      leader.leaderSend()
-    for node in network["nodes"]:
-      node.sendOverlays()
+    runHeartbeat(network)
   print("Converged after: " + str(iter) + " heartbeats")
 
 
