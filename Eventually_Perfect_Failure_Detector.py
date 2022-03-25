@@ -1,7 +1,7 @@
 # Author: K. Zirger
 # 2022
 
-class node():
+class node_class():
   def __init__(self, index, n, is_leader = False):
     self.T = 1 # Heartbeat time
     self.n = n
@@ -186,21 +186,44 @@ class node():
       for neighbor in [x for x in self.neighbors if x in self.group]:
         neighbor.leaderBagReceiveGroup(self, self.messages[0], self.messages[1], self.messages[2])
 
-def buildNetwork(size: int, connections: list):
+def buildNetwork(size: int, connections: list, groups: list, leaders: list):
   nodes = []
   for i in range(size):
-    nodes.append(node(i, size))
+    nodes.append(node_class(i, size))
   for index in range(len(connections)):
     for neighbor in connections[index]:
       if nodes[neighbor] not in nodes[index].neighbors:
         nodes[index].neighbors.append(nodes[neighbor])
-  return nodes
 
-def checkConverged(groups):
+  node_groups = []
   for group in groups:
-    for node in group:
-      if True in node.suspect:
-        return False
+    temp_group = []
+    for node_i in group:
+      temp_group.append(nodes[node_i])
+    node_groups.append(temp_group)
+
+  node_leaders = []
+  for leader_i in leaders:
+    node_leaders.append(nodes[leader_i])
+  
+  for group in node_groups:
+    for node_i, node in enumerate(group):
+      node.updateGroup(group, node_i)
+      node.updateLeaders(node_groups, node_leaders)
+
+  for leader_i, leader in enumerate(node_leaders):
+    leader.updateLeader(leader_i)
+
+  return {
+    "nodes": nodes,
+    "groups": node_groups,
+    "leaders": node_leaders
+  }
+
+def checkConverged(network):
+  for node in network["nodes"]:
+    if True in node.suspect:
+      return False
   return True
 
 def buildExample1():
@@ -226,551 +249,41 @@ def buildExample1():
     [13, 17, 19],
     [18, 4]
   ]
-  network = buildNetwork(20, connections)
 
   groups = [[
-    network[0], network[5], network[6], network[7], network[11],
-    network[1], network[2], network[3], network[4], network[9],
-    network[8], network[13], network[14], network[18], network[19],
-    network[10], network[12], network[15], network[16], network[17]
+    0, 5, 6, 7, 11,
+    1, 2, 3, 4, 9,
+    8, 13, 14, 18, 19,
+    10, 12, 15, 16, 17
     ]]
 
-  leaders = [network[5]]
+  leaders = [5]
 
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
+  network = buildNetwork(20, connections, groups, leaders)
 
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[19] = True
-  network[0].group_suspect[19] = True
+  network["nodes"][0].suspect[19] = True
+  network["nodes"][0].group_suspect[19] = True
       
-  return [groups, leaders, network]
-
-def buildExample2():
-  connections = [
-    [5],
-    [5, 6, 2],
-    [1, 3, 8],
-    [2, 4, 8, 9],
-    [3, 8, 9, 19],
-    [0, 1, 11],
-    [1, 7, 11, 12],
-    [6, 13],
-    [2, 3, 4, 9, 13],
-    [3, 4, 8],
-    [13, 15],
-    [5, 6],
-    [6, 16, 17],
-    [7, 8, 10, 14, 18],
-    [13],
-    [10, 16],
-    [12, 15],
-    [12, 18],
-    [13, 17, 19],
-    [18, 4]
-  ]
-
-  network = buildNetwork(20, connections)
-
-  groups = [
-    [network[0], network[5], network[6], network[7], network[11]],
-    [network[1], network[2], network[3], network[4], network[9]],
-    [network[8], network[13], network[14], network[18], network[19]],
-    [network[10], network[12], network[15], network[16], network[17]]
-    ]
-
-  leaders = [network[5], network[2], network[14], network[16]]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
-
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[19] = True
-      
-  return [groups, leaders, network]
-
-def buildExample3():
-  connections = [
-    [1],
-    [0,2],
-    [1,3],
-    [2,4],
-    [3,5],
-    [4,6],
-    [5,7],
-    [6,8],
-    [7,9],
-    [8,10],
-    [9,11],
-    [10,12],
-    [11,13],
-    [12,14],
-    [13,15],
-    [14,16],
-    [15,17],
-    [16,18],
-    [17,19],
-    [18,20],
-    [19,21],
-    [20,22],
-    [21,23],
-    [22,24],
-    [23,25],
-    [24,26],
-    [25,27],
-    [26,28],
-    [27,29],
-    [28,30],
-    [29,31],
-    [30,32],
-    [31,33],
-    [32,34],
-    [33,35],
-    [34]
-  ]
-
-  network = buildNetwork(36, connections)
-
-  temp_group = []
-  for i in range(36):
-    temp_group.append(network[i])
-
-  groups = [temp_group]
-
-  leaders = [network[12]]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
-
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[1] = True
-  network[0].group_suspect[1] = True
-      
-  return [groups, leaders, network]
-
-def buildExample4():
-  connections = [
-    [1],
-    [0,2],
-    [1,3],
-    [2,4],
-    [3,5],
-    [4,6],
-    [5,7],
-    [6,8],
-    [7,9],
-    [8,10],
-    [9,11],
-    [10,12],
-    [11,13],
-    [12,14],
-    [13,15],
-    [14,16],
-    [15,17],
-    [16,18],
-    [17,19],
-    [18,20],
-    [19,21],
-    [20,22],
-    [21,23],
-    [22,24],
-    [23,25],
-    [24,26],
-    [25,27],
-    [26,28],
-    [27,29],
-    [28,30],
-    [29,31],
-    [30,32],
-    [31,33],
-    [32,34],
-    [33,35],
-    [34]
-  ]
-
-  network = buildNetwork(36, connections)
-
-  groups = [
-    [network[0], network[1], network[2], network[3], network[4], network[5]],
-    [network[6], network[7], network[8], network[9], network[10], network[11]],
-    [network[12], network[13], network[14], network[15], network[16], network[17]],
-    [network[18], network[19], network[20], network[21], network[22], network[23]],
-    [network[24], network[25], network[26], network[27], network[28], network[29]],
-    [network[30], network[31], network[32], network[33], network[34], network[35]]
-  ]
-
-  leaders = [network[2], network[9], network[14], network[21], network[26], network[33]]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
-
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[35] = True
-      
-  return [groups, leaders, network]
-
-def buildExample5():
-  connections=[
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-  ]
-
-  network = buildNetwork(20, connections)
-
-  temp_group = []
-  for i in range(20):
-    temp_group.append(network[i])
-
-  groups = [temp_group]
-
-  leaders = [network[10]]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
-
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[19] = True
-  network[0].group_suspect[19] = True
-
-  return [groups, leaders, network]
-
-def buildExample6():
-  connections=[
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19],
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-  ]
-
-  network = buildNetwork(20, connections)
-
-  temp_group = []
-  for i in range(20):
-    temp_group.append(network[i])
-
-  groups = [
-    [network[0], network[2], network[4], network[6]],
-    [network[1], network[3], network[5], network[7]],
-    [network[8], network[10], network[12], network[14]],
-    [network[9], network[11], network[13], network[15]],
-    [network[16], network[17], network[18], network[19]]
-  ]
-
-  leaders = [network[2], network[5], network[10], network[13], network[17]]
-
-  for group in groups:
-    for node_i in range(len(group)):
-      group[node_i].updateGroup(group, node_i)
-      group[node_i].updateLeaders(groups, leaders)
-
-  for node_i in range(len(leaders)):
-    leaders[node_i].updateLeader(node_i)
-
-  network[0].suspect[19] = True
-
-  return [groups, leaders, network]
+  return network
 
 def main():
 
   print("In-Paper Network Example, old algorithm, one error")
 
   network = buildExample1()
-  groups = network[0]
-  leaders = network[1]
+  leaders = network["leaders"]
   iter = 0
-  while not checkConverged(groups):
+  while not checkConverged(network):
     iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
+    for node in network["nodes"]:
+      node.groupSend()
     for leader in leaders:
       leader.leaderSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
+    for node in network["nodes"]:
+      node.sendOverlays()
   print("Converged after: " + str(iter) + " heartbeats")
 
-  print("In-Paper Network Example, old algorithm, all errors (worst case)")
 
-  network = buildExample1()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while not checkConverged(groups):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for leader in leaders:
-      leader.leaderSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("In-Paper Network Example, group algorithm, one error")
-
-  network = buildExample2()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("In-Paper Network Example, group algorithm, all errors (worst case)")
-
-  network = buildExample2()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while not checkConverged(groups):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("long chain network, old algorithm, one error")
-
-  network = buildExample3()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("long chain network, old algorithm, all errors (worst case)")
-
-  network = buildExample3()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("long chain network, group algorithm, one error")
-
-  network = buildExample4()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("long chain network, group algorithm, all errors (worst case)")
-
-  network = buildExample4()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("fully connected network, old algorithm, one error")
-
-  network = buildExample5()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("fully connected network, old algorithm, all errors (worst case)")
-
-  network = buildExample5()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("fully connected network, group algorithm, one error")
-
-  network = buildExample6()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
-
-  print("fully connected network, group algorithm, all errors (worst case)")
-
-  network = buildExample6()
-  groups = network[0]
-  leaders = network[1]
-  iter = 0
-  for node in network[2]:
-    for other_node in range(len(node.suspect)):
-      node.suspect[other_node] = True
-    for other_node in range(len(node.group_suspect)):
-      node.group_suspect[other_node] = True
-  while (not checkConverged(groups)):
-    iter += 1
-    for group in groups:
-      for node in group:
-        node.groupSend()
-    for group in groups:
-      for node in group:
-        node.sendOverlays()
-    for leader in leaders:
-      leader.leaderSend()
-  print("Converged after: " + str(iter) + " heartbeats")
     
 if __name__ == "__main__":
   main()
